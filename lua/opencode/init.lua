@@ -1,10 +1,15 @@
 local M = {}
 
+local transport_cli = require("opencode.transport_cli")
+local transport_server = require("opencode.transport_server")
+
 local function plugin_root()
 	local source = debug.getinfo(1, "S").source
 	local path = source:sub(1, 1) == "@" and source:sub(2) or source
 	return vim.fn.fnamemodify(path, ":p:h:h:h")
 end
+
+M._root = plugin_root()
 
 M.last_prompt = nil
 M.last_model = nil
@@ -21,10 +26,13 @@ end
 M.config = {
 	default_variant = "simple",
 	base_url = "http://127.0.0.1:4096",
+	transport = "cli",
 	node_cmd = "node",
 	node_args = { "--experimental-strip-types" },
 	npm_cmd = "npm",
 	client_script = plugin_root() .. "/scripts/opencode-client.ts",
+	cli_cmd = "opencode",
+	cli_args = { "run" },
 	session_title = "Neovim",
 	persist_sessions = true,
 	sessions_file = vim.fn.stdpath("data") .. "/opencode/sessions.json",
@@ -183,50 +191,11 @@ function M.build_prompt(ctx, variant)
 	return spec.template(ctx)
 end
 
-local function run_client(payload, cb)
-	local function decode_error(output)
-		if not output or output == "" then
-			return nil
-		end
-		local ok, decoded = pcall(vim.fn.json_decode, output)
-		if ok and type(decoded) == "table" and decoded.error then
-			return decoded.error
-		end
-		return nil
+local function resolve_transport()
+	if M.config.transport == "cli" then
+		return transport_cli
 	end
-
-	if vim.fn.isdirectory(plugin_root() .. "/node_modules") ~= 1 then
-		cb(false, nil, 'Node dependencies missing. Set lazy.nvim build = "npm install" or run :OpencodeInstall.')
-		return
-	end
-	local cmd = { M.config.node_cmd }
-	if type(M.config.node_args) == "table" then
-		vim.list_extend(cmd, M.config.node_args)
-	end
-	table.insert(cmd, M.config.client_script)
-	vim.system(cmd, { text = true, stdin = payload }, function(obj)
-		vim.schedule(function()
-			if obj.code ~= 0 then
-				local err = (obj.stderr and obj.stderr ~= "" and obj.stderr) or obj.stdout or "unknown error"
-				local decoded = decode_error(obj.stdout) or decode_error(obj.stderr)
-				if decoded then
-					err = decoded
-				end
-				cb(false, nil, err)
-				return
-			end
-			local ok, decoded = pcall(vim.fn.json_decode, obj.stdout or "")
-			if not ok or type(decoded) ~= "table" then
-				cb(false, nil, "Failed to decode opencode response")
-				return
-			end
-			if decoded.ok == false then
-				cb(false, decoded, decoded.error or "Opencode request failed")
-				return
-			end
-			cb(true, decoded, nil)
-		end)
-	end)
+	return transport_server
 end
 
 function M.install_deps()
@@ -251,31 +220,15 @@ function M.install_deps()
 end
 
 function M.send_prompt(prompt, model, name)
-	local payload = {
-		baseUrl = M.config.base_url,
-		sessionId = M.get_session_id(),
-		sessionTitle = M.config.session_title,
-		directory = vim.fn.getcwd(),
-		prompt = prompt,
-		model = model,
-		serverConfigFile = M.config.server_password_file,
-		serverConfig = M.config.server_config,
-		debugLogFile = M.config.debug_log_file,
-	}
-
 	local label = name or M.config.default_variant
 	local title = "Opencode (" .. label .. ")"
+	local transport = resolve_transport()
 
-	run_client(vim.fn.json_encode(payload), function(ok, data, err)
+	transport.send(M, prompt, model, function(ok, data, err)
 		if not ok then
 			vim.notify(err, vim.log.levels.ERROR, { title = title })
 			return
 		end
-
-		if data.sessionId then
-			M.set_session_id(data.sessionId)
-		end
-
 		local text = data.text or ""
 		if text ~= "" then
 			vim.notify(text, vim.log.levels.INFO, { title = title })
@@ -285,52 +238,8 @@ end
 
 function M.ensure_session(opts)
 	opts = opts or {}
-	if M.get_session_id() then
-		local payload = {
-			baseUrl = M.config.base_url,
-			sessionId = M.get_session_id(),
-			directory = vim.fn.getcwd(),
-			ensureServer = true,
-			serverConfigFile = M.config.server_password_file,
-			serverConfig = M.config.server_config,
-			debugLogFile = M.config.debug_log_file,
-		}
-
-		run_client(vim.fn.json_encode(payload), function(ok, data, err)
-			if not ok then
-				if not opts.silent then
-					vim.notify(err, vim.log.levels.ERROR, { title = "Opencode" })
-					vim.notify("Server ensure failed", vim.log.levels.ERROR, { title = "Opencode" })
-				end
-				return
-			end
-		end)
-		return
-	end
-
-	local payload = {
-		baseUrl = M.config.base_url,
-		sessionId = nil,
-		sessionTitle = M.config.session_title,
-		directory = vim.fn.getcwd(),
-		createSession = true,
-		serverConfigFile = M.config.server_password_file,
-		serverConfig = M.config.server_config,
-		debugLogFile = M.config.debug_log_file,
-	}
-
-	run_client(vim.fn.json_encode(payload), function(ok, data, err)
-		if not ok then
-			if not opts.silent then
-				vim.notify(err, vim.log.levels.ERROR, { title = "Opencode" })
-				vim.notify("Session creation failed", vim.log.levels.ERROR, { title = "Opencode" })
-			end
-			return
-		end
-		if data.sessionId then
-			M.set_session_id(data.sessionId)
-		end
-	end)
+	local transport = resolve_transport()
+	transport.ensure_session(M, opts)
 end
 
 local function create_prompt_window()
