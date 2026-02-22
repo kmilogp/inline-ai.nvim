@@ -26,3 +26,12 @@ vim.keymap.set('n', '<leader>O', function()
     opencode.send_prompt(prompt, model, name)
   end)
 end, { desc = 'Open Opencode complex prompt' })
+
+local group = vim.api.nvim_create_augroup('OpencodeSession', { clear = true })
+
+vim.api.nvim_create_autocmd({ 'VimEnter', 'DirChanged' }, {
+  group = group,
+  callback = function()
+    opencode.ensure_session({ silent = false })
+  end,
+})

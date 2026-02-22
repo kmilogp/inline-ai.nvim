@@ -5,18 +5,19 @@ Use the notes below to keep changes consistent with existing patterns.
 
 ## Build, Lint, Test
 
-Status: no explicit build/lint/test tooling is configured in this repo.
-There are no package scripts, Makefile targets, or CI workflows.
+Status: basic Vitest tooling is configured.
+There are no Makefile targets or CI workflows.
 
 Use these commands when needed:
 
 - Install Node deps (if you touch the client): `npm install`
+- Run tests: `npm test`
+- Run typecheck: `npm run typecheck`
 - Run the Node client manually: `node scripts/opencode-client.mjs`
 
 Single-test guidance:
 
-- No test runner is configured.
-- If you add tests later, document how to run a single test here.
+- Run a single test file: `npx vitest run tests/server-reuse.test.mjs`
 
 If you introduce new tooling, update this section with exact commands.
 
@@ -135,6 +136,7 @@ JS error handling patterns to keep:
 - Keep `plugin/` thin; put logic in `lua/opencode/`.
 - Reuse existing helpers; do not duplicate `pcall` patterns.
 - Respect existing UX (keymaps, prompts, notifications).
+- Always run tests and confirm they pass before finishing work.
 
 ## Suggested Local Checks
 

@@ -5,7 +5,8 @@ Neovim client for Opencode with a small Node helper.
 ## Requirements
 
 - Neovim 0.10+
-- Node.js and npm
+- Node.js 22+ (uses `--experimental-strip-types` to run `.mts`)
+- npm
 
 ## Installation (lazy.nvim)
 
@@ -28,6 +29,13 @@ If you already installed the plugin without dependencies, run:
 
 Defaults are in `lua/opencode/init.lua`. You can override fields by editing
 `require("opencode").config` in your config.
+
+## Server
+
+The Node client connects to a fixed base URL (default `http://127.0.0.1:4096`).
+If the server is not running, it uses the SDK to start it on the same host/port.
+The server password is stored in `stdpath('data')/opencode/server.json` so all
+Neovim clients reuse the same credentials.
 
 
 ## Commands
