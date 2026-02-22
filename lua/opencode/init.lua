@@ -14,6 +14,7 @@ M.config = {
   default_variant = 'simple',
   base_url = 'http://localhost:4096',
   node_cmd = 'node',
+  npm_cmd = 'npm',
   client_script = plugin_root() .. '/scripts/opencode-client.mjs',
   session_title = 'Neovim',
   persist_sessions = true,
@@ -79,6 +80,7 @@ local function project_key()
   return vim.fn.getcwd()
 end
 
+
 function M.get_session_id()
   ensure_sessions()
   return M._sessions[project_key()]
@@ -123,6 +125,10 @@ function M.build_prompt(ctx, variant)
 end
 
 local function run_client(payload, cb)
+  if vim.fn.isdirectory(plugin_root() .. '/node_modules') ~= 1 then
+    cb(false, nil, 'Node dependencies missing. Set lazy.nvim build = "npm install" or run :OpencodeInstall.')
+    return
+  end
   local cmd = { M.config.node_cmd, M.config.client_script }
   vim.system(cmd, { text = true, stdin = payload }, function(obj)
     vim.schedule(function()
@@ -141,6 +147,27 @@ local function run_client(payload, cb)
         return
       end
       cb(true, decoded, nil)
+    end)
+  end)
+end
+
+function M.install_deps()
+  vim.notify('Opencode: installing npm dependencies...', vim.log.levels.INFO)
+  local root = plugin_root()
+  if vim.fn.filereadable(root .. '/package.json') ~= 1 then
+    vim.notify('Opencode install failed: package.json not found', vim.log.levels.ERROR)
+    return
+  end
+
+  local cmd = { M.config.npm_cmd, 'install' }
+  vim.system(cmd, { text = true, cwd = root }, function(obj)
+    vim.schedule(function()
+      if obj.code ~= 0 then
+        local err = (obj.stderr and obj.stderr ~= '' and obj.stderr) or obj.stdout or 'unknown error'
+        vim.notify('Opencode install failed: ' .. err, vim.log.levels.ERROR)
+        return
+      end
+      vim.notify('Opencode dependencies installed', vim.log.levels.INFO)
     end)
   end)
 end

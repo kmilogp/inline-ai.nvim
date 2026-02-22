@@ -11,6 +11,10 @@ end, {
   complete = function() return vim.tbl_keys(opencode.config.variants) end,
 })
 
+vim.api.nvim_create_user_command('OpencodeInstall', function()
+  opencode.install_deps()
+end, { desc = 'Install Opencode npm dependencies' })
+
 vim.keymap.set('n', '<leader>o', function()
   opencode.open_prompt('simple', function(prompt, model, name)
     opencode.send_prompt(prompt, model, name)
