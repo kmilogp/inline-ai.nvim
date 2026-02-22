@@ -1,32 +1,17 @@
 # AGENTS.md
 
-This repository is a small Neovim plugin plus a Node client script.
+This repository is a small Neovim plugin that shells out to the Opencode CLI.
 Use the notes below to keep changes consistent with existing patterns.
 
 ## Build, Lint, Test
 
-Status: basic Vitest tooling is configured.
-There are no Makefile targets or CI workflows.
-
-Use these commands when needed:
-
-- Install Node deps (if you touch the client): `npm install`
-- Run tests: `npm test`
-- Run typecheck: `npm run typecheck`
-- Run the Node client manually: `node scripts/opencode-client.mjs`
-
-Single-test guidance:
-
-- Run a single test file: `npx vitest run tests/server-reuse.test.mjs`
-
-If you introduce new tooling, update this section with exact commands.
+There are no Makefile targets, tests, or CI workflows.
 
 ## Repository Layout
 
 - `lua/opencode/init.lua`: main plugin module and core logic.
 - `plugin/opencode.lua`: Neovim command + keymaps.
-- `scripts/opencode-client.mjs`: Node client that talks to Opencode API.
-- `package.json`: dependency list (no scripts).
+No additional scripts are required.
 
 ## Cursor / Copilot Rules
 
@@ -62,30 +47,6 @@ Lua error handling patterns to keep:
 - Errors for unexpected state (e.g., unknown variant).
 - `vim.notify` for user-facing failures or warnings.
 
-## Code Style: JavaScript (Node)
-
-- ESM modules are required (`type: "module"`).
-- Indentation: 2 spaces.
-- Quotes: double quotes.
-- Semicolons: required.
-- Prefer `const` and `let`; avoid `var`.
-- Use `async/await` for IO; avoid nested promise chains.
-- Use optional chaining and nullish coalescing for safe access.
-- Keep helpers pure and small (e.g., `normalizeModel`).
-
-JS error handling patterns to keep:
-
-- Throw `Error` for fatal conditions (missing session id).
-- Convert SDK errors to user-readable messages.
-- On failure, print JSON `{ ok: false, error }` to stdout.
-- On success, print JSON `{ ok: true, sessionId, text }`.
-
-## Imports and Dependencies
-
-- Node builtins should use the `node:` prefix (see `node:process`).
-- Third-party deps are minimal (`@opencode-ai/sdk`).
-- Keep imports sorted with builtins first, then external modules.
-
 ## Formatting and Layout
 
 - Keep line lengths reasonable; wrap tables/objects for readability.
@@ -95,9 +56,7 @@ JS error handling patterns to keep:
 
 ## Types and Data Shapes
 
-- This repo is not using TypeScript; keep JS untyped.
-- Input/output payloads are JSON; validate minimal fields.
-- Lua config and session data are plain tables.
+- Lua config data is a plain table.
 - When adding fields, keep `config` defaults centralized.
 
 ## Naming Conventions
@@ -117,18 +76,9 @@ JS error handling patterns to keep:
 
 ## Neovim Plugin Behavior
 
-- Session data is stored under `stdpath('data')/opencode/`.
 - Prompt window is a minimal floating buffer; preserve UX.
 - Keep prompt callback flow: build prompt -> set last_* -> send.
 - The default variants are `simple` and `complex`.
-
-## Node Client Behavior
-
-- Reads JSON from stdin, writes JSON to stdout.
-- Creates session if none exists (uses `sessionTitle`).
-- Sends prompt as `parts: [{ type: "text", text }]`.
-- Normalizes model strings like `provider/model`.
-- For all communication and server actions, always use the JS SDK.
 
 ## When Making Changes
 
@@ -140,9 +90,7 @@ JS error handling patterns to keep:
 
 ## Suggested Local Checks
 
-- Manual smoke check in Neovim after Lua edits.
-- Run the Node client with a sample stdin JSON if touched.
-- Confirm JSON decode/encode paths still succeed.
+ - Manual smoke check in Neovim after Lua edits.
 
 ## Gaps / TODOs
 
