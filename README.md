@@ -50,7 +50,7 @@ require('opencode').setup({
     },
     cursor_agent = {
       cli_cmd = 'cursor-agent',
-      cli_args = {},
+      cli_args = { '--trust' },
       model_flag = '--model',
       prompt_mode = 'arg',
     },
