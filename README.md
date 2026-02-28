@@ -138,6 +138,7 @@ END_INSERT
 
 You can return multiple blocks one after another. Full-file replacements are not allowed in auto-apply mode.
 Do not include numbered prefixes (for example `12: `) in `OLD` or insert anchor lines.
+Blank-line insert anchors are allowed; if the blank line is not unique, include surrounding lines in the same anchor block.
 
 ## Request logs
 

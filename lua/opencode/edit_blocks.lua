@@ -74,6 +74,18 @@ local function trim_trailing_empty_lines(lines)
   return out
 end
 
+local function normalize_insert_anchor_lines(lines)
+  local normalized = normalize_numbered_lines(lines)
+  local trimmed = trim_trailing_empty_lines(normalized)
+  if #trimmed > 0 then
+    return trimmed
+  end
+  if #normalized > 0 then
+    return { '' }
+  end
+  return {}
+end
+
 local function build_line_counts(lines)
   local counts = {}
   for _, line in ipairs(lines) do
@@ -222,7 +234,7 @@ function M.parse(text)
       if not anchor_lines then
         return nil, 'Cannot auto-apply: expected NEW: block in insert'
       end
-      anchor_lines = trim_trailing_empty_lines(normalize_numbered_lines(anchor_lines))
+      anchor_lines = normalize_insert_anchor_lines(anchor_lines)
       if #anchor_lines == 0 then
         return nil, 'Cannot auto-apply: insert anchor block cannot be empty'
       end

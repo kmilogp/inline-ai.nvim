@@ -65,6 +65,8 @@ local function build_edit_contract(ctx)
       '  END_INSERT',
       '- You may return multiple blocks one after another.',
       '- OLD/anchor content must match existing file lines exactly and uniquely.',
+      '- Blank-line anchors are allowed for insert blocks (a blank line between BEFORE:/AFTER: and NEW:).',
+      '- If a blank-line anchor is ambiguous, include more surrounding anchor lines so it is unique.',
       '- Do not include numbered prefixes like "12: " in OLD/anchor lines.',
       '- Do not return full file content.',
       '- Do not wrap output in markdown fences.',

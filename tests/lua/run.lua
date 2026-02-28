@@ -433,6 +433,27 @@ tests['edit_blocks.parse trims trailing blank anchor lines'] = function()
   end)
 end
 
+tests['edit_blocks.parse allows blank insert anchor lines'] = function()
+  local vim_mock = make_vim_mock()
+  with_vim(vim_mock, function()
+    local edit_blocks = reload('opencode.edit_blocks')
+    local blocks, err = edit_blocks.parse(table.concat({
+      'BEGIN_INSERT',
+      'BEFORE:',
+      '3: ',
+      'NEW:',
+      'function my_empty_function()',
+      'end',
+      'END_INSERT',
+    }, '\n'))
+    assert_eq(err, nil)
+    assert_eq(#blocks, 1)
+    assert_eq(blocks[1].kind, 'insert')
+    assert_eq(blocks[1].position, 'before')
+    assert_eq(blocks[1].anchor_lines, { '' })
+  end)
+end
+
 tests['edit_blocks.apply replace insert and skip'] = function()
   local vim_mock = make_vim_mock()
   local get_lines = attach_buffer_lines(vim_mock, { 'A', 'B', 'C' })
@@ -463,6 +484,33 @@ tests['edit_blocks.apply ambiguous anchor fails'] = function()
     })
     assert_eq(ok, false)
     assert_match(msg, 'ambiguous')
+  end)
+end
+
+tests['edit_blocks.apply inserts before unique blank line'] = function()
+  local vim_mock = make_vim_mock()
+  local get_lines = attach_buffer_lines(vim_mock, { 'alpha', '', 'omega' })
+  vim_mock.bo[1] = { modifiable = true }
+
+  with_vim(vim_mock, function()
+    local edit_blocks = reload('opencode.edit_blocks')
+    local ok, msg = edit_blocks.apply({ bufnr = 1 }, {
+      {
+        kind = 'insert',
+        position = 'before',
+        anchor_lines = { '' },
+        new_lines = { 'function my_empty_function()', 'end' },
+      },
+    })
+    assert_true(ok)
+    assert_match(msg, 'Applied 1')
+    assert_eq(get_lines(), {
+      'alpha',
+      'function my_empty_function()',
+      'end',
+      '',
+      'omega',
+    })
   end)
 end
 
