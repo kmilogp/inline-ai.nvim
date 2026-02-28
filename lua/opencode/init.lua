@@ -28,8 +28,8 @@ function M.setup(opts)
   M.config = vim.tbl_deep_extend('force', M.config, opts)
 end
 
-function M.get_context(include_full_file_context)
-  return context.get(templates, include_full_file_context)
+function M.get_context(include_full_file_context, run_opts)
+  return context.get(templates, include_full_file_context, run_opts)
 end
 
 function M.build_prompt(ctx, profile_name)
@@ -40,9 +40,9 @@ local function resolve_profile(profile_name)
   return profiles.resolve(M.config, profile_name, providers)
 end
 
-local function apply_prompt_input(input, name, profile, provider)
+local function apply_prompt_input(input, name, profile, provider, run_opts)
   local include_full_file = profile.include_full_file_context ~= false
-  local ctx = M.get_context(include_full_file)
+  local ctx = M.get_context(include_full_file, run_opts)
   local prompt_ctx = vim.tbl_extend('force', ctx, {
     input = input or '',
     auto_apply = util.is_auto_apply_enabled(profile, provider),
@@ -61,14 +61,14 @@ local function apply_prompt_input(input, name, profile, provider)
   return prompt, model
 end
 
-function M.run_prompt(input, profile_name)
+function M.run_prompt(input, profile_name, run_opts)
   local name, profile, provider, err = resolve_profile(profile_name)
   if err then
     vim.notify(err, vim.log.levels.ERROR, { title = 'Opencode' })
     return
   end
 
-  local prompt, model = apply_prompt_input(input, name, profile, provider)
+  local prompt, model = apply_prompt_input(input, name, profile, provider, run_opts)
   M.send_prompt(prompt, model, name, profile.provider)
 end
 

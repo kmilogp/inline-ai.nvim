@@ -99,6 +99,12 @@ local function build_context_section(ctx, include_full_file)
     ctx.snippet_text or '',
   }
 
+  if (ctx.selected_text or '') ~= '' then
+    table.insert(lines, '')
+    table.insert(lines, 'Selected text (' .. tostring(ctx.selection_start_line or '') .. '-' .. tostring(ctx.selection_end_line or '') .. '):')
+    table.insert(lines, ctx.selected_text)
+  end
+
   if include_full_file and ctx.has_full_file_context and (ctx.full_file_text or '') ~= '' then
     table.insert(lines, '')
     table.insert(lines, 'Full file content:')

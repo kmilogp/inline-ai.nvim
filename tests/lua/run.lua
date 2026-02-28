@@ -320,7 +320,13 @@ tests['context.get returns cursor and file context'] = function()
           has_full_file_context = true,
         }
       end,
-    }, false)
+    }, false, {
+      selection = {
+        start_line = 9,
+        end_line = 12,
+        text = 'selected lines',
+      },
+    })
 
     assert_eq(called_include, false)
     assert_eq(result.bufnr, 7)
@@ -329,6 +335,9 @@ tests['context.get returns cursor and file context'] = function()
     assert_eq(result.file, 'file.lua')
     assert_eq(result.filetype, 'lua')
     assert_eq(result.line_text, 'target line')
+    assert_eq(result.selected_text, 'selected lines')
+    assert_eq(result.selection_start_line, 9)
+    assert_eq(result.selection_end_line, 12)
   end)
 end
 
@@ -364,6 +373,32 @@ tests['profiles.resolve and build_prompt'] = function()
       end,
     })
     assert_eq(prompt, 'Task: x')
+  end)
+end
+
+tests['templates.fast includes selected text context'] = function()
+  local vim_mock = make_vim_mock()
+  with_vim(vim_mock, function()
+    local templates = reload('opencode.templates')
+    local prompt = templates.fast({
+      input = 'Refactor selection',
+      auto_apply = false,
+      file = 'x.lua',
+      line = 3,
+      col = 1,
+      filetype = 'lua',
+      line_text = 'local x = 1',
+      total_lines = 10,
+      snippet_start = 1,
+      snippet_end = 5,
+      snippet_text = '1: local x = 1',
+      has_full_file_context = false,
+      selected_text = 'x = x + 1',
+      selection_start_line = 3,
+      selection_end_line = 3,
+    })
+    assert_match(prompt, 'Selected text %(%d+%-%d+%)')
+    assert_match(prompt, 'x = x %+ 1')
   end)
 end
 

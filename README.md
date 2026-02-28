@@ -23,8 +23,10 @@ Neovim client for AI agents (Opencode, Codex, Cursor Agent, Ollama, and compatib
 ## Basic usage
 
 - `:OpencodePrompt [profile] <prompt>`
-- `<leader>o` pre-fills `:OpencodePrompt fast ` in the command line
-- `<leader>O` pre-fills `:OpencodePrompt deep ` in the command line
+- `<leader>of` (normal + visual) pre-fills `:OpencodePrompt fast ` in the command line
+- `<leader>od` (normal + visual) pre-fills `:OpencodePrompt deep ` in the command line
+- `<leader>op` (normal + visual) pre-fills `:OpencodePrompt <default_profile> ` in the command line
+- Visual-mode usage is supported via range commands (for example `:'<,'>OpencodePrompt fast ...`); the selected lines are included in prompt context.
 
 A profile chooses:
 
