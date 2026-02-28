@@ -151,6 +151,12 @@ local function make_vim_mock()
   mock.fn.fnamemodify = function(value)
     return value
   end
+  mock.fn.stdpath = function()
+    return '/tmp/nvim'
+  end
+  mock.fn.filereadable = function()
+    return 0
+  end
   mock.fn.line = function()
     return 1
   end
@@ -223,7 +229,79 @@ tests['defaults.build uses xdg path'] = function()
     })
     assert_eq(config.default_profile, 'fast')
     assert_eq(config.debug_log_file, '/tmp/xdg/inline-ai/inline-ai.nvim.log')
+    assert_eq(config.predefined_prompts, {})
     assert_true(type(config.profiles.fast.template) == 'function')
+  end)
+end
+
+tests['predefined_prompts.normalize defaults profile to fast'] = function()
+  local vim_mock = make_vim_mock()
+  with_vim(vim_mock, function()
+    local predefined_prompts = reload('inline_ai.predefined_prompts')
+    local prompts, err = predefined_prompts.normalize({
+      { title = 'Explain current file', prompt = 'Explain this file' },
+    })
+    assert_eq(err, nil)
+    assert_eq(#prompts, 1)
+    assert_eq(prompts[1].profile, 'fast')
+  end)
+end
+
+tests['predefined_prompts.normalize accepts agent alias'] = function()
+  local vim_mock = make_vim_mock()
+  with_vim(vim_mock, function()
+    local predefined_prompts = reload('inline_ai.predefined_prompts')
+    local prompts, err = predefined_prompts.normalize({
+      prompts = {
+        { title = 'Deep review', prompt = 'Review deeply', agent = 'deep' },
+      },
+    })
+    assert_eq(err, nil)
+    assert_eq(prompts[1].profile, 'deep')
+  end)
+end
+
+tests['predefined_prompts.normalize rejects invalid prompt'] = function()
+  local vim_mock = make_vim_mock()
+  with_vim(vim_mock, function()
+    local predefined_prompts = reload('inline_ai.predefined_prompts')
+    local prompts, err = predefined_prompts.normalize({
+      { title = 'Broken entry' },
+    })
+    assert_eq(prompts, nil)
+    assert_match(err, 'missing prompt')
+  end)
+end
+
+tests['predefined_prompts.load falls back to built-in defaults'] = function()
+  local vim_mock = make_vim_mock()
+  with_vim(vim_mock, function()
+    local predefined_prompts = reload('inline_ai.predefined_prompts')
+    local prompts, err, source = predefined_prompts.load({})
+    assert_eq(err, nil)
+    assert_eq(source, 'built-in defaults')
+    assert_true(#prompts > 0)
+  end)
+end
+
+tests['predefined_prompts.load merges user prompts with built-in defaults'] = function()
+  local vim_mock = make_vim_mock()
+  with_vim(vim_mock, function()
+    local predefined_prompts = reload('inline_ai.predefined_prompts')
+    local default_prompt_defs = reload('inline_ai.default_prompts').list()
+    local prompts, err, source = predefined_prompts.load({
+      predefined_prompts = {
+        {
+          title = 'User Prompt',
+          prompt = 'Do user-defined action',
+          profile = 'fast',
+        },
+      },
+    })
+    assert_eq(err, nil)
+    assert_eq(source, 'built-in defaults + config.predefined_prompts')
+    assert_eq(#prompts, #default_prompt_defs + 1)
+    assert_eq(prompts[#prompts].title, 'User Prompt')
   end)
 end
 

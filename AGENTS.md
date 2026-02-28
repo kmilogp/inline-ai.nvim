@@ -91,9 +91,9 @@ Lua error handling patterns to keep:
 ## Suggested Local Checks
 
  - Manual smoke check in Neovim after Lua edits.
+ - Run tests for checking no bugs are introduced.
 
 ## Gaps / TODOs
 
-- No tests are present; add a test plan if you introduce tests.
 - No formatter or lint rules are defined; keep style consistent.
 - No CI is configured; document any new workflows you add.

@@ -5,6 +5,7 @@ Neovim client for AI agents (Opencode, Codex, Cursor Agent, Ollama, and compatib
 ## Requirements
 
 - Neovim 0.10+
+- `nvim-telescope/telescope.nvim` (required for `:InlineAiPromptPicker`)
 - At least one configured provider (for example `opencode`, `codex`, `cursor-agent`, or `ollama`)
 - `curl` is required when using the Ollama HTTP transport
 
@@ -13,6 +14,37 @@ Neovim client for AI agents (Opencode, Codex, Cursor Agent, Ollama, and compatib
 ```lua
 {
   'kmilogp/inline-ai.nvim',
+  dependencies = {
+    'nvim-lua/plenary.nvim',
+    'nvim-telescope/telescope.nvim',
+  },
+}
+```
+
+Lazy.nvim example with predefined prompts:
+
+```lua
+{
+  'kmilogp/inline-ai.nvim',
+  dependencies = {
+    'nvim-lua/plenary.nvim',
+    'nvim-telescope/telescope.nvim',
+  },
+  opts = {
+    default_profile = 'fast',
+    predefined_prompts = {
+      {
+        title = 'Extract Function',
+        prompt = 'Refactor current logic into a function. If inside a class, use a private method.',
+        profile = 'fast',
+      },
+      {
+        title = 'Deep Review',
+        prompt = 'Review architecture and suggest concrete improvements.',
+        agent = 'deep',
+      },
+    },
+  },
 }
 ```
 
@@ -23,9 +55,10 @@ Neovim client for AI agents (Opencode, Codex, Cursor Agent, Ollama, and compatib
 ## Basic usage
 
 - `:InlineAiPrompt [profile] <prompt>`
+- `:InlineAiPromptPicker` opens a Telescope picker with built-in prompts plus configured `predefined_prompts`
 - `<leader>of` (normal + visual) pre-fills `:InlineAiPrompt fast ` in the command line
 - `<leader>od` (normal + visual) pre-fills `:InlineAiPrompt deep ` in the command line
-- `<leader>op` (normal + visual) pre-fills `:InlineAiPrompt <default_profile> ` in the command line
+- `<leader>op` (normal + visual) opens `:InlineAiPromptPicker`
 - Visual-mode usage is supported via range commands (for example `:'<,'>InlineAiPrompt fast ...`); the selected lines are included in prompt context.
 
 A profile chooses:
@@ -44,6 +77,19 @@ Defaults are defined in `lua/inline_ai/init.lua`.
 ```lua
 require('inline_ai').setup({
   default_profile = 'fast',
+  predefined_prompts = {
+    {
+      title = 'Quick refactor',
+      prompt = 'Refactor this file for clarity and keep behavior unchanged',
+      profile = 'fast', -- optional, defaults to "fast"
+      description = 'Safe cleanup pass', -- optional
+    },
+    {
+      title = 'Deep architecture review',
+      prompt = 'Review architecture and suggest concrete improvements',
+      agent = 'deep', -- alias for profile
+    },
+  },
   providers = {
     opencode = {
       cli_cmd = 'opencode',
@@ -97,6 +143,33 @@ require('inline_ai').setup({
   },
 })
 ```
+
+The picker always includes built-in prompts from `lua/inline_ai/default_prompts.lua`.
+If `predefined_prompts` is set, its entries are appended to the built-in set.
+
+## Passing prompts
+
+Direct prompt from command line:
+
+```vim
+:InlineAiPrompt fast Refactor this block into a helper function
+```
+
+Predefined prompts via setup + picker:
+
+```lua
+require('inline_ai').setup({
+  predefined_prompts = {
+    {
+      title = 'Extract Function',
+      prompt = 'Refactor current logic into a function. If inside a class, use a private method.',
+      profile = 'fast',
+    },
+  },
+})
+```
+
+Then run `:InlineAiPromptPicker` (or `<leader>op`) and select the prompt.
 
 ## Provider shape
 

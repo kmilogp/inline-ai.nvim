@@ -11,6 +11,7 @@ end
 function M.build(templates, providers)
   return {
     default_profile = 'fast',
+    predefined_prompts = {},
     debug_log_file = inline_ai_data_path() .. '/inline-ai.nvim.log',
     providers = providers.default_providers(),
     profiles = {
