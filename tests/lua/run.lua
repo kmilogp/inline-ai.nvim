@@ -382,7 +382,6 @@ tests['templates.fast includes selected text context'] = function()
     local templates = reload('inline_ai.templates')
     local prompt = templates.fast({
       input = 'Refactor selection',
-      auto_apply = false,
       file = 'x.lua',
       line = 3,
       col = 1,
@@ -780,7 +779,7 @@ tests['sender handles resolve profile error'] = function()
   end)
 end
 
-tests['sender ollama auto-apply success'] = function()
+tests['sender ollama edit-block apply success'] = function()
   local vim_mock = make_vim_mock()
   local notified = {}
   vim_mock.notify = function(msg, level)
@@ -798,7 +797,7 @@ tests['sender ollama auto-apply success'] = function()
       providers = {},
       profiles = {
         resolve = function()
-          return 'fast', { provider = 'ollama', model = 'qwen', auto_apply = true }, { transport = 'ollama_http' }, nil
+          return 'fast', { provider = 'ollama', model = 'qwen' }, { transport = 'ollama_http' }, nil
         end,
       },
       logging = {

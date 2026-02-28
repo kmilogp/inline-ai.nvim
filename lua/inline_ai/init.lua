@@ -7,7 +7,6 @@ local logging = require('inline_ai.logging')
 local context = require('inline_ai.context')
 local profiles = require('inline_ai.profiles')
 local edit_blocks = require('inline_ai.edit_blocks')
-local util = require('inline_ai.util')
 local sender = require('inline_ai.sender')
 local transport_cli = require('inline_ai.transport_cli')
 local transport_ollama = require('inline_ai.transport_ollama')
@@ -45,7 +44,6 @@ local function apply_prompt_input(input, name, profile, provider, run_opts)
   local ctx = M.get_context(include_full_file, run_opts)
   local prompt_ctx = vim.tbl_extend('force', ctx, {
     input = input or '',
-    auto_apply = util.is_auto_apply_enabled(profile, provider),
     provider_transport = provider.transport,
   })
   local prompt = M.build_prompt(prompt_ctx, name)

@@ -40,8 +40,4 @@ function M.build_system_meta(base, obj, started_at_ms, prompt_chars)
   return meta, status_code
 end
 
-function M.is_auto_apply_enabled(profile, provider)
-  return (profile and profile.auto_apply == true) or (provider and provider.auto_apply == true)
-end
-
 return M

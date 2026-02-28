@@ -1,5 +1,4 @@
 local M = {}
-local util = require('inline_ai.util')
 
 local function resolve_transport(provider, transport_cli, transport_ollama)
   if provider and provider.transport == 'ollama_http' then
@@ -31,7 +30,6 @@ function M.send(state, deps, prompt, model, profile_name, provider_name)
       deps.logging.end_edit(state, 'error', {
         phase = 'provider_response',
         provider = profile.provider,
-        auto_apply = util.is_auto_apply_enabled(profile, provider),
         error = transport_err,
         transport = transport_meta,
       })
@@ -60,16 +58,6 @@ function M.send(state, deps, prompt, model, profile_name, provider_name)
     end
 
     deps.logging.log_ollama_response(state, text, transport_meta)
-    if profile.auto_apply ~= true and provider.auto_apply ~= true then
-      deps.logging.end_edit(state, 'ok', {
-        provider = profile.provider,
-        apply_mode = 'provider_output',
-        transport = transport_meta,
-      })
-      vim.notify(text, vim.log.levels.INFO, { title = title })
-      return
-    end
-
     local blocks, parse_err = deps.edit_blocks.parse(text)
     local ok_apply, apply_msg, applied_count = false, parse_err, 0
     if blocks then

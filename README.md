@@ -89,7 +89,6 @@ require('inline_ai').setup({
     local = {
       provider = 'ollama',
       model = 'qwen3-coder',
-      auto_apply = true,
       include_full_file_context = true,
       template = function(ctx)
         return ('Task: %s\nFile: %s:%s'):format(ctx.input, ctx.file, ctx.line)
@@ -114,13 +113,11 @@ CLI providers support:
 - `endpoint` (string, required, usually `http://127.0.0.1:11434/api/generate`)
 - `options` (table, optional; merged into the JSON body)
 - `timeout_seconds` (number, optional)
-- `auto_apply` (boolean, optional; when true, the plugin applies parsed edits automatically)
 
 The plugin shells out asynchronously via `vim.system` and shows provider output via `vim.notify`.
 
-For `ollama_http`, set `auto_apply = true` to apply model edits automatically.
-
-When `auto_apply = true`, the model output must contain only edit blocks in one of these formats:
+For `ollama_http`, the plugin always applies parsed edit blocks automatically.
+The model output must contain only edit blocks in one of these formats:
 
 ```text
 BEGIN_REPLACE
@@ -138,7 +135,7 @@ NEW:
 END_INSERT
 ```
 
-You can return multiple blocks one after another. Full-file replacements are not allowed in auto-apply mode.
+You can return multiple blocks one after another. Full-file replacements are not allowed in this mode.
 Do not include numbered prefixes (for example `12: `) in `OLD` or insert anchor lines.
 Blank-line insert anchors are allowed; if the blank line is not unique, include surrounding lines in the same anchor block.
 
