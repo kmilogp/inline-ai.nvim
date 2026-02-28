@@ -401,6 +401,52 @@ tests['templates.fast includes selected text context'] = function()
   end)
 end
 
+tests['templates.fast uses ollama edit-block contract'] = function()
+  local vim_mock = make_vim_mock()
+  with_vim(vim_mock, function()
+    local templates = reload('inline_ai.templates')
+    local prompt = templates.fast({
+      input = 'Do it',
+      provider_transport = 'ollama_http',
+      file = 'x.lua',
+      line = 1,
+      col = 1,
+      filetype = 'lua',
+      line_text = 'x',
+      total_lines = 1,
+      snippet_start = 1,
+      snippet_end = 1,
+      snippet_text = '1: x',
+      has_full_file_context = false,
+    })
+    assert_match(prompt, 'BEGIN_REPLACE')
+    assert_match(prompt, 'Return only edit blocks, nothing else')
+  end)
+end
+
+tests['templates.fast uses tool-edit contract for cli providers'] = function()
+  local vim_mock = make_vim_mock()
+  with_vim(vim_mock, function()
+    local templates = reload('inline_ai.templates')
+    local prompt = templates.fast({
+      input = 'Do it',
+      provider_transport = 'cli',
+      file = 'x.lua',
+      line = 1,
+      col = 1,
+      filetype = 'lua',
+      line_text = 'x',
+      total_lines = 1,
+      snippet_start = 1,
+      snippet_end = 1,
+      snippet_text = '1: x',
+      has_full_file_context = false,
+    })
+    assert_match(prompt, 'apply the edit directly')
+    assert_match(prompt, 'LINE <number>: <new content>')
+  end)
+end
+
 tests['edit_blocks.parse replace and insert'] = function()
   local vim_mock = make_vim_mock()
   with_vim(vim_mock, function()
@@ -776,6 +822,54 @@ tests['sender handles resolve profile error'] = function()
     assert_eq(end_calls[1].status, 'error')
     assert_eq(end_calls[1].details.phase, 'resolve_profile')
     assert_eq(notified[1].msg, 'bad profile')
+  end)
+end
+
+tests['sender cli success reloads target buffer from disk'] = function()
+  local vim_mock = make_vim_mock()
+  local cmd_calls = {}
+  local notified = {}
+  vim_mock.cmd = function(command)
+    table.insert(cmd_calls, command)
+  end
+  vim_mock.notify = function(msg, level)
+    table.insert(notified, { msg = msg, level = level })
+  end
+
+  with_vim(vim_mock, function()
+    local sender = reload('inline_ai.sender')
+    local end_calls = {}
+    sender.send({
+      config = {},
+      last_context = { bufnr = 1 },
+    }, {
+      providers = {},
+      profiles = {
+        resolve = function()
+          return 'fast', { provider = 'codex', model = 'gpt' }, { transport = 'cli' }, nil
+        end,
+      },
+      logging = {
+        end_edit = function(_, status, details)
+          table.insert(end_calls, { status = status, details = details })
+        end,
+        log_ollama_response = function() end,
+      },
+      edit_blocks = {},
+      transport_cli = {
+        send = function(_, _, _, _, cb)
+          cb(true, { text = 'done' }, nil, { status = 'ok' })
+        end,
+      },
+      transport_ollama = {
+        send = function() end,
+      },
+    }, 'prompt', nil, 'fast', nil)
+
+    assert_eq(cmd_calls[1], 'checktime 1')
+    assert_eq(end_calls[1].status, 'ok')
+    assert_eq(end_calls[1].details.apply_mode, 'provider_output')
+    assert_eq(notified[1].msg, 'done')
   end)
 end
 

@@ -7,6 +7,20 @@ local function resolve_transport(provider, transport_cli, transport_ollama)
   return transport_cli
 end
 
+local function reload_target_buffer(state)
+  local ctx = state and state.last_context
+  local bufnr = ctx and ctx.bufnr
+  if type(bufnr) ~= 'number' or bufnr <= 0 then
+    return
+  end
+
+  if not vim.api.nvim_buf_is_valid(bufnr) then
+    return
+  end
+
+  pcall(vim.cmd, 'checktime ' .. tostring(bufnr))
+end
+
 function M.send(state, deps, prompt, model, profile_name, provider_name)
   local name, profile, provider, err = deps.profiles.resolve(state.config, profile_name, deps.providers)
   if err then
@@ -39,6 +53,9 @@ function M.send(state, deps, prompt, model, profile_name, provider_name)
 
     local text = data.text or ''
     if text == '' then
+      if provider.transport == 'cli' then
+        reload_target_buffer(state)
+      end
       deps.logging.end_edit(state, 'ok', {
         provider = profile.provider,
         apply_mode = 'empty_response',
@@ -48,6 +65,7 @@ function M.send(state, deps, prompt, model, profile_name, provider_name)
     end
 
     if provider.transport ~= 'ollama_http' then
+      reload_target_buffer(state)
       deps.logging.end_edit(state, 'ok', {
         provider = profile.provider,
         apply_mode = 'provider_output',
