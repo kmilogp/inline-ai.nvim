@@ -78,7 +78,7 @@ Lua error handling patterns to keep:
 
 - Prompt window is a minimal floating buffer; preserve UX.
 - Keep prompt callback flow: build prompt -> set last_* -> send.
-- The default variants are `simple` and `complex`.
+- The default variants are `fast` and `deep`.
 
 ## When Making Changes
 

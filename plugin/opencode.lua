@@ -45,18 +45,3 @@ end, { desc = 'Prefill fast AI prompt command' })
 vim.keymap.set('n', '<leader>O', function()
   vim.api.nvim_input(':OpencodePrompt deep ')
 end, { desc = 'Prefill deep AI prompt command' })
-
-vim.api.nvim_create_user_command('OpencodePromptPrefill', function(opts)
-  local profile = opts.args ~= '' and opts.args or opencode.config.default_profile
-  if not opencode.config.profiles[profile] then
-    vim.notify('Unknown profile: ' .. profile, vim.log.levels.ERROR, { title = 'Opencode' })
-    return
-  end
-  vim.api.nvim_input(':OpencodePrompt ' .. profile .. ' ')
-end, {
-  desc = 'Open command line with profile prefilled',
-  nargs = '?',
-  complete = function()
-    return vim.tbl_keys(opencode.config.profiles)
-  end,
-})

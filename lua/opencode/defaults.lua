@@ -26,18 +26,6 @@ function M.build(templates, providers)
         include_full_file_context = true,
         template = templates.deep,
       },
-      simple = {
-        provider = 'opencode',
-        model = 'openai/gpt-5.1-codex-mini',
-        include_full_file_context = true,
-        template = templates.fast,
-      },
-      complex = {
-        provider = 'opencode',
-        model = 'openai/gpt-5.2-codex',
-        include_full_file_context = true,
-        template = templates.deep,
-      },
     },
   }
 end

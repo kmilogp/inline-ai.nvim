@@ -7,7 +7,6 @@ local logging = require('opencode.logging')
 local context = require('opencode.context')
 local profiles = require('opencode.profiles')
 local edit_blocks = require('opencode.edit_blocks')
-local prompt_window = require('opencode.prompt_window')
 local sender = require('opencode.sender')
 local transport_cli = require('opencode.transport_cli')
 local transport_ollama = require('opencode.transport_ollama')
@@ -81,28 +80,6 @@ function M.send_prompt(prompt, model, profile_name, provider_name)
     transport_cli = transport_cli,
     transport_ollama = transport_ollama,
   }, prompt, model, profile_name, provider_name)
-end
-
-function M.open_prompt(profile_name, cb)
-  prompt_window.open({
-    profile_name = profile_name,
-    cb = function(prompt, model, name, provider_name, ctx)
-      M.last_prompt = prompt
-      M.last_model = model
-      M.last_profile = name
-      M.last_provider = provider_name
-      M.last_context = ctx
-      logging.start_edit(M, name, provider_name, model, prompt, ctx)
-      cb(prompt, model, name, provider_name)
-    end,
-    resolve_profile = resolve_profile,
-    get_context = function(include_full_file)
-      return M.get_context(include_full_file)
-    end,
-    build_prompt = function(ctx, name)
-      return M.build_prompt(ctx, name)
-    end,
-  })
 end
 
 return M

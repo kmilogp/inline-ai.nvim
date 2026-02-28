@@ -25,7 +25,6 @@ Neovim client for AI agents (Opencode, Codex, Cursor Agent, Ollama, and compatib
 - `:OpencodePrompt [profile] <prompt>`
 - `<leader>o` pre-fills `:OpencodePrompt fast ` in the command line
 - `<leader>O` pre-fills `:OpencodePrompt deep ` in the command line
-- Legacy profile names `simple` and `complex` are still supported.
 
 A profile chooses:
 
