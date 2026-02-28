@@ -1,16 +1,17 @@
 local opencode = require('opencode')
+local PROMPT_USAGE = 'Usage: OpencodePrompt [profile] <prompt>'
 
 local function parse_prompt_args(raw)
   local args = vim.trim(raw or '')
   if args == '' then
-    return nil, nil, 'Usage: OpencodePrompt [profile] <prompt>'
+    return nil, nil, PROMPT_USAGE
   end
 
   local first, rest = args:match('^(%S+)%s*(.*)$')
   if first and opencode.config.profiles[first] then
     local prompt = vim.trim(rest or '')
     if prompt == '' then
-      return nil, nil, 'Usage: OpencodePrompt [profile] <prompt>'
+      return nil, nil, PROMPT_USAGE
     end
     return first, prompt, nil
   end

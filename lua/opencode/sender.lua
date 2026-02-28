@@ -1,4 +1,5 @@
 local M = {}
+local util = require('opencode.util')
 
 local function resolve_transport(provider, transport_cli, transport_ollama)
   if provider and provider.transport == 'ollama_http' then
@@ -30,7 +31,7 @@ function M.send(state, deps, prompt, model, profile_name, provider_name)
       deps.logging.end_edit(state, 'error', {
         phase = 'provider_response',
         provider = profile.provider,
-        auto_apply = profile.auto_apply == true or provider.auto_apply == true,
+        auto_apply = util.is_auto_apply_enabled(profile, provider),
         error = transport_err,
         transport = transport_meta,
       })

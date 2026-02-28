@@ -1,14 +1,7 @@
 local M = {}
+local util = require('opencode.util')
 
 local next_edit_id = 0
-
-local function now_ms()
-  local uv = vim.uv or vim.loop
-  if uv and uv.hrtime then
-    return math.floor(uv.hrtime() / 1000000)
-  end
-  return 0
-end
 
 local function round_seconds(value)
   return math.floor(value * 1000 + 0.5) / 1000
@@ -49,7 +42,7 @@ function M.start_edit(state, profile_name, provider_name, model, prompt, ctx)
   next_edit_id = next_edit_id + 1
   state.last_edit_session = {
     edit_id = next_edit_id,
-    started_at_ms = now_ms(),
+    started_at_ms = util.now_ms(),
     profile = profile_name,
     provider = provider_name,
     model = model,
@@ -62,7 +55,7 @@ end
 
 function M.end_edit(state, status, details)
   local session = state.last_edit_session
-  local ended_at = now_ms()
+  local ended_at = util.now_ms()
   local started_at = session and session.started_at_ms or nil
   local elapsed_ms = nil
   local elapsed_seconds = nil

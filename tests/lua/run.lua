@@ -55,6 +55,42 @@ local function split_lines(value)
   return out
 end
 
+local function copy_lines(lines)
+  local out = {}
+  for i, line in ipairs(lines or {}) do
+    out[i] = line
+  end
+  return out
+end
+
+local function attach_buffer_lines(vim_mock, initial_lines)
+  local lines = copy_lines(initial_lines)
+
+  vim_mock.api.nvim_buf_line_count = function()
+    return #lines
+  end
+
+  vim_mock.api.nvim_buf_get_lines = function(_, start_idx, end_idx)
+    local out = {}
+    local last = end_idx
+    if end_idx < 0 then
+      last = #lines
+    end
+    for i = start_idx + 1, last do
+      table.insert(out, lines[i])
+    end
+    return out
+  end
+
+  vim_mock.api.nvim_buf_set_lines = function(_, _, _, _, new_lines)
+    lines = copy_lines(new_lines)
+  end
+
+  return function()
+    return copy_lines(lines)
+  end
+end
+
 local function make_vim_mock()
   local mock = {
     NIL = {},
@@ -399,24 +435,7 @@ end
 
 tests['edit_blocks.apply replace insert and skip'] = function()
   local vim_mock = make_vim_mock()
-  local lines = { 'A', 'B', 'C' }
-  vim_mock.api.nvim_buf_line_count = function()
-    return #lines
-  end
-  vim_mock.api.nvim_buf_get_lines = function(_, start_idx, end_idx)
-    local out = {}
-    local last = end_idx
-    if end_idx < 0 then
-      last = #lines
-    end
-    for i = start_idx + 1, last do
-      table.insert(out, lines[i])
-    end
-    return out
-  end
-  vim_mock.api.nvim_buf_set_lines = function(_, _, _, _, new_lines)
-    lines = new_lines
-  end
+  local get_lines = attach_buffer_lines(vim_mock, { 'A', 'B', 'C' })
   vim_mock.bo[1] = { modifiable = true }
 
   with_vim(vim_mock, function()
@@ -429,20 +448,13 @@ tests['edit_blocks.apply replace insert and skip'] = function()
     assert_true(ok)
     assert_eq(applied, 2)
     assert_match(msg, 'skipped 1')
-    assert_eq(lines, { 'X', 'Y', 'B', 'C' })
+    assert_eq(get_lines(), { 'X', 'Y', 'B', 'C' })
   end)
 end
 
 tests['edit_blocks.apply ambiguous anchor fails'] = function()
   local vim_mock = make_vim_mock()
-  local lines = { 'A', 'A' }
-  vim_mock.api.nvim_buf_line_count = function()
-    return #lines
-  end
-  vim_mock.api.nvim_buf_get_lines = function()
-    return { 'A', 'A' }
-  end
-  vim_mock.api.nvim_buf_set_lines = function() end
+  attach_buffer_lines(vim_mock, { 'A', 'A' })
   vim_mock.bo[1] = { modifiable = true }
   with_vim(vim_mock, function()
     local edit_blocks = reload('opencode.edit_blocks')
@@ -456,24 +468,10 @@ end
 
 tests['edit_blocks.apply matches numbered anchors'] = function()
   local vim_mock = make_vim_mock()
-  local lines = { '-- Load telescope extensions', 'pcall(require("telescope"))' }
-  vim_mock.api.nvim_buf_line_count = function()
-    return #lines
-  end
-  vim_mock.api.nvim_buf_get_lines = function(_, start_idx, end_idx)
-    local out = {}
-    local last = end_idx
-    if end_idx < 0 then
-      last = #lines
-    end
-    for i = start_idx + 1, last do
-      table.insert(out, lines[i])
-    end
-    return out
-  end
-  vim_mock.api.nvim_buf_set_lines = function(_, _, _, _, new_lines)
-    lines = new_lines
-  end
+  local get_lines = attach_buffer_lines(vim_mock, {
+    '-- Load telescope extensions',
+    'pcall(require("telescope"))',
+  })
   vim_mock.bo[1] = { modifiable = true }
 
   with_vim(vim_mock, function()
@@ -487,13 +485,13 @@ tests['edit_blocks.apply matches numbered anchors'] = function()
     })
     assert_true(ok)
     assert_match(msg, 'Applied 1')
-    assert_eq(lines, { 'pcall(require("telescope"))' })
+    assert_eq(get_lines(), { 'pcall(require("telescope"))' })
   end)
 end
 
 tests['edit_blocks.apply reported numbered replace blocks'] = function()
   local vim_mock = make_vim_mock()
-  local lines = {
+  local get_lines = attach_buffer_lines(vim_mock, {
     '-- Load telescope extensions',
     "pcall(require('telescope').load_extension, 'live_grep_args')",
     '-- Enable live_grep_args extension for advanced grep functionality',
@@ -503,25 +501,7 @@ tests['edit_blocks.apply reported numbered replace blocks'] = function()
     '-- Set keymap for live grep args search',
     "vim.keymap.set('n', '<leader>sg', extensions.live_grep_args.live_grep_args, { desc = '[S]earch by [G]rep' })",
     '-- Search using live grep args with custom description',
-  }
-
-  vim_mock.api.nvim_buf_line_count = function()
-    return #lines
-  end
-  vim_mock.api.nvim_buf_get_lines = function(_, start_idx, end_idx)
-    local out = {}
-    local last = end_idx
-    if end_idx < 0 then
-      last = #lines
-    end
-    for i = start_idx + 1, last do
-      table.insert(out, lines[i])
-    end
-    return out
-  end
-  vim_mock.api.nvim_buf_set_lines = function(_, _, _, _, new_lines)
-    lines = new_lines
-  end
+  })
   vim_mock.bo[1] = { modifiable = true }
 
   with_vim(vim_mock, function()
@@ -557,7 +537,7 @@ tests['edit_blocks.apply reported numbered replace blocks'] = function()
     local ok, msg = edit_blocks.apply({ bufnr = 1 }, blocks)
     assert_true(ok)
     assert_match(msg, 'Applied 3')
-    assert_eq(lines, {
+    assert_eq(get_lines(), {
       "pcall(require('telescope').load_extension, 'live_grep_args')",
       '',
       "local extensions = require('telescope').extensions",
@@ -569,30 +549,12 @@ end
 
 tests['edit_blocks.apply does not skip when old-only lines still exist'] = function()
   local vim_mock = make_vim_mock()
-  local lines = {
+  attach_buffer_lines(vim_mock, {
     'keep',
     '-- comment to remove',
     'target',
     '-- trailing comment',
-  }
-
-  vim_mock.api.nvim_buf_line_count = function()
-    return #lines
-  end
-  vim_mock.api.nvim_buf_get_lines = function(_, start_idx, end_idx)
-    local out = {}
-    local last = end_idx
-    if end_idx < 0 then
-      last = #lines
-    end
-    for i = start_idx + 1, last do
-      table.insert(out, lines[i])
-    end
-    return out
-  end
-  vim_mock.api.nvim_buf_set_lines = function(_, _, _, _, new_lines)
-    lines = new_lines
-  end
+  })
   vim_mock.bo[1] = { modifiable = true }
 
   with_vim(vim_mock, function()
@@ -611,31 +573,13 @@ end
 
 tests['edit_blocks.apply handles old block with trailing blank at eof'] = function()
   local vim_mock = make_vim_mock()
-  local lines = {
+  local get_lines = attach_buffer_lines(vim_mock, {
     "pcall(require('telescope').load_extension, 'live_grep_args')",
     "local extensions = require('telescope').extensions",
     '-- Set keymap for live grep args search',
     "vim.keymap.set('n', '<leader>sg', extensions.live_grep_args.live_grep_args, { desc = '[S]earch by [G]rep' })",
     '-- Search using live grep args with custom description',
-  }
-
-  vim_mock.api.nvim_buf_line_count = function()
-    return #lines
-  end
-  vim_mock.api.nvim_buf_get_lines = function(_, start_idx, end_idx)
-    local out = {}
-    local last = end_idx
-    if end_idx < 0 then
-      last = #lines
-    end
-    for i = start_idx + 1, last do
-      table.insert(out, lines[i])
-    end
-    return out
-  end
-  vim_mock.api.nvim_buf_set_lines = function(_, _, _, _, new_lines)
-    lines = new_lines
-  end
+  })
   vim_mock.bo[1] = { modifiable = true }
 
   with_vim(vim_mock, function()
@@ -656,7 +600,7 @@ tests['edit_blocks.apply handles old block with trailing blank at eof'] = functi
     local ok, msg = edit_blocks.apply({ bufnr = 1 }, blocks)
     assert_true(ok)
     assert_match(msg, 'Applied 1')
-    assert_eq(lines, {
+    assert_eq(get_lines(), {
       "pcall(require('telescope').load_extension, 'live_grep_args')",
       "local extensions = require('telescope').extensions",
       "vim.keymap.set('n', '<leader>sg', extensions.live_grep_args.live_grep_args, { desc = '[S]earch by [G]rep' })",

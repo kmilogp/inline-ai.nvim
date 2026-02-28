@@ -7,6 +7,7 @@ local logging = require('opencode.logging')
 local context = require('opencode.context')
 local profiles = require('opencode.profiles')
 local edit_blocks = require('opencode.edit_blocks')
+local util = require('opencode.util')
 local sender = require('opencode.sender')
 local transport_cli = require('opencode.transport_cli')
 local transport_ollama = require('opencode.transport_ollama')
@@ -44,7 +45,7 @@ local function apply_prompt_input(input, name, profile, provider)
   local ctx = M.get_context(include_full_file)
   local prompt_ctx = vim.tbl_extend('force', ctx, {
     input = input or '',
-    auto_apply = profile.auto_apply == true or provider.auto_apply == true,
+    auto_apply = util.is_auto_apply_enabled(profile, provider),
     provider_transport = provider.transport,
   })
   local prompt = M.build_prompt(prompt_ctx, name)
