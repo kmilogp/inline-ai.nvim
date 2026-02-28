@@ -1,16 +1,16 @@
 local M = {}
 
-local providers = require('opencode.providers')
-local templates = require('opencode.templates')
-local defaults = require('opencode.defaults')
-local logging = require('opencode.logging')
-local context = require('opencode.context')
-local profiles = require('opencode.profiles')
-local edit_blocks = require('opencode.edit_blocks')
-local util = require('opencode.util')
-local sender = require('opencode.sender')
-local transport_cli = require('opencode.transport_cli')
-local transport_ollama = require('opencode.transport_ollama')
+local providers = require('inline_ai.providers')
+local templates = require('inline_ai.templates')
+local defaults = require('inline_ai.defaults')
+local logging = require('inline_ai.logging')
+local context = require('inline_ai.context')
+local profiles = require('inline_ai.profiles')
+local edit_blocks = require('inline_ai.edit_blocks')
+local util = require('inline_ai.util')
+local sender = require('inline_ai.sender')
+local transport_cli = require('inline_ai.transport_cli')
+local transport_ollama = require('inline_ai.transport_ollama')
 
 M.last_prompt = nil
 M.last_model = nil
@@ -64,7 +64,7 @@ end
 function M.run_prompt(input, profile_name, run_opts)
   local name, profile, provider, err = resolve_profile(profile_name)
   if err then
-    vim.notify(err, vim.log.levels.ERROR, { title = 'Opencode' })
+    vim.notify(err, vim.log.levels.ERROR, { title = 'Inline AI' })
     return
   end
 

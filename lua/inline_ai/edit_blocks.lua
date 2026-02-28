@@ -1,5 +1,13 @@
 local M = {}
 
+local function normalize_control_line(line)
+  local value = tostring(line or '')
+  value = value:gsub('\r$', '')
+  value = value:gsub('^%s+', '')
+  value = value:gsub('%s+$', '')
+  return value
+end
+
 local function find_block_matches(source_lines, needle_lines)
   local matches = {}
   local needle_len = #needle_lines
@@ -32,6 +40,10 @@ local function strip_number_prefix(line)
   return line, false
 end
 
+local function strip_trailing_whitespace(line)
+  return tostring(line or ''):gsub('%s+$', '')
+end
+
 local function build_anchor_variants(anchor_lines)
   local variants = { anchor_lines }
   local stripped = {}
@@ -47,6 +59,20 @@ local function build_anchor_variants(anchor_lines)
 
   if changed then
     table.insert(variants, stripped)
+  end
+
+  local rstripped = {}
+  local trailing_changed = false
+  for i, line in ipairs(anchor_lines) do
+    local normalized = strip_trailing_whitespace(line)
+    rstripped[i] = normalized
+    if normalized ~= line then
+      trailing_changed = true
+    end
+  end
+
+  if trailing_changed then
+    table.insert(variants, rstripped)
   end
 
   return variants
@@ -173,11 +199,11 @@ function M.parse(text)
 
   local function collect_until(stop_token)
     local collected = {}
-    while index <= #lines and lines[index] ~= stop_token do
+    while index <= #lines and normalize_control_line(lines[index]) ~= stop_token do
       table.insert(collected, lines[index])
       index = index + 1
     end
-    if lines[index] ~= stop_token then
+    if normalize_control_line(lines[index]) ~= stop_token then
       return nil
     end
     index = index + 1
@@ -185,12 +211,12 @@ function M.parse(text)
   end
 
   while index <= #lines do
-    local line = lines[index]
+    local line = normalize_control_line(lines[index])
     if line == '' then
       index = index + 1
     elseif line == 'BEGIN_REPLACE' then
       index = index + 1
-      if lines[index] ~= 'OLD:' then
+      if normalize_control_line(lines[index]) ~= 'OLD:' then
         return nil, 'Cannot auto-apply: expected OLD: after BEGIN_REPLACE'
       end
       index = index + 1
@@ -219,7 +245,7 @@ function M.parse(text)
     elseif line == 'BEGIN_INSERT' then
       index = index + 1
 
-      local position_line = lines[index]
+      local position_line = normalize_control_line(lines[index])
       local position = nil
       if position_line == 'BEFORE:' then
         position = 'before'

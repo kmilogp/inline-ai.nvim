@@ -1,5 +1,5 @@
 local M = {}
-local util = require('opencode.util')
+local util = require('inline_ai.util')
 
 local function command_preview(provider, model)
   local preview = { provider.cli_cmd }

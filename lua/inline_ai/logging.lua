@@ -1,5 +1,5 @@
 local M = {}
-local util = require('opencode.util')
+local util = require('inline_ai.util')
 
 local next_edit_id = 0
 

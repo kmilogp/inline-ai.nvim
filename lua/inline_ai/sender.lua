@@ -1,5 +1,5 @@
 local M = {}
-local util = require('opencode.util')
+local util = require('inline_ai.util')
 
 local function resolve_transport(provider, transport_cli, transport_ollama)
   if provider and provider.transport == 'ollama_http' then
@@ -12,18 +12,18 @@ function M.send(state, deps, prompt, model, profile_name, provider_name)
   local name, profile, provider, err = deps.profiles.resolve(state.config, profile_name, deps.providers)
   if err then
     deps.logging.end_edit(state, 'error', { phase = 'resolve_profile', error = err })
-    vim.notify(err, vim.log.levels.ERROR, { title = 'Opencode' })
+    vim.notify(err, vim.log.levels.ERROR, { title = 'Inline AI' })
     return
   end
 
   if provider_name and provider_name ~= '' and provider_name ~= profile.provider then
     deps.logging.end_edit(state, 'error', { phase = 'provider_mismatch', error = provider_name .. ' vs ' .. profile.provider })
-    vim.notify('Profile/provider mismatch: ' .. provider_name .. ' vs ' .. profile.provider, vim.log.levels.ERROR, { title = 'Opencode' })
+    vim.notify('Profile/provider mismatch: ' .. provider_name .. ' vs ' .. profile.provider, vim.log.levels.ERROR, { title = 'Inline AI' })
     return
   end
 
   local resolved_model = model or profile.model
-  local title = 'Opencode (' .. name .. ' / ' .. profile.provider .. ')'
+  local title = 'Inline AI (' .. name .. ' / ' .. profile.provider .. ')'
   local transport = resolve_transport(provider, deps.transport_cli, deps.transport_ollama)
 
   transport.send(state, provider, prompt, resolved_model, function(ok, data, transport_err, transport_meta)

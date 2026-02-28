@@ -1,4 +1,4 @@
-# opencode.nvim
+# inline-ai.nvim
 
 Neovim client for AI agents (Opencode, Codex, Cursor Agent, Ollama, and compatible tools).
 
@@ -12,7 +12,7 @@ Neovim client for AI agents (Opencode, Codex, Cursor Agent, Ollama, and compatib
 
 ```lua
 {
-  'kmilogp/opencode.nvim',
+  'kmilogp/inline-ai.nvim',
 }
 ```
 
@@ -22,11 +22,11 @@ Neovim client for AI agents (Opencode, Codex, Cursor Agent, Ollama, and compatib
 
 ## Basic usage
 
-- `:OpencodePrompt [profile] <prompt>`
-- `<leader>of` (normal + visual) pre-fills `:OpencodePrompt fast ` in the command line
-- `<leader>od` (normal + visual) pre-fills `:OpencodePrompt deep ` in the command line
-- `<leader>op` (normal + visual) pre-fills `:OpencodePrompt <default_profile> ` in the command line
-- Visual-mode usage is supported via range commands (for example `:'<,'>OpencodePrompt fast ...`); the selected lines are included in prompt context.
+- `:InlineAiPrompt [profile] <prompt>`
+- `<leader>of` (normal + visual) pre-fills `:InlineAiPrompt fast ` in the command line
+- `<leader>od` (normal + visual) pre-fills `:InlineAiPrompt deep ` in the command line
+- `<leader>op` (normal + visual) pre-fills `:InlineAiPrompt <default_profile> ` in the command line
+- Visual-mode usage is supported via range commands (for example `:'<,'>InlineAiPrompt fast ...`); the selected lines are included in prompt context.
 
 A profile chooses:
 
@@ -39,10 +39,10 @@ Built-in templates include editing context (cursor location and numbered nearby 
 
 ## Configuration
 
-Defaults are defined in `lua/opencode/init.lua`.
+Defaults are defined in `lua/inline_ai/init.lua`.
 
 ```lua
-require('opencode').setup({
+require('inline_ai').setup({
   default_profile = 'fast',
   providers = {
     opencode = {
@@ -146,8 +146,8 @@ Blank-line insert anchors are allowed; if the blank line is not unique, include 
 
 Every edit operation is logged as one JSON line to `debug_log_file`.
 
-- Default path: `$XDG_DATA_HOME/opencode/opencode.nvim.log`
-- Fallback when `XDG_DATA_HOME` is unset: `~/.local/share/opencode/opencode.nvim.log`
+- Default path: `$XDG_DATA_HOME/inline-ai/inline-ai.nvim.log`
+- Fallback when `XDG_DATA_HOME` is unset: `~/.local/share/inline-ai/inline-ai.nvim.log`
 
 Each edit operation writes exactly one JSON log line with fields like:
 
@@ -163,7 +163,7 @@ For `ollama_http`, an additional JSON log line is written with `event = ollama_r
 To disable logging:
 
 ```lua
-require('opencode').setup({
+require('inline_ai').setup({
   debug_log_file = '',
 })
 ```

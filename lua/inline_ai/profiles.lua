@@ -23,11 +23,11 @@ end
 function M.build_prompt(config, profile_name, ctx, providers)
   local name, profile, _, err = M.resolve(config, profile_name, providers)
   if err then
-    error('opencode.build_prompt ' .. err)
+    error('inline_ai.build_prompt ' .. err)
   end
 
   if type(profile.template) ~= 'function' then
-    error('opencode.build_prompt profile has no template function: ' .. tostring(name))
+    error('inline_ai.build_prompt profile has no template function: ' .. tostring(name))
   end
 
   return profile.template(ctx)

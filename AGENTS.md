@@ -1,6 +1,6 @@
 # AGENTS.md
 
-This repository is a small Neovim plugin that shells out to the Opencode CLI.
+This repository is a small Neovim plugin that shells out to AI CLIs.
 Use the notes below to keep changes consistent with existing patterns.
 
 ## Build, Lint, Test
@@ -9,8 +9,8 @@ There are no Makefile targets, tests, or CI workflows.
 
 ## Repository Layout
 
-- `lua/opencode/init.lua`: main plugin module and core logic.
-- `plugin/opencode.lua`: Neovim command + keymaps.
+- `lua/inline_ai/init.lua`: main plugin module and core logic.
+- `plugin/inline-ai.lua`: Neovim command + keymaps.
 No additional scripts are required.
 
 ## Cursor / Copilot Rules
@@ -64,7 +64,7 @@ Lua error handling patterns to keep:
 - Lua: `snake_case` for locals, `PascalCase` not used.
 - JS: `camelCase` for variables/functions, `PascalCase` for classes.
 - Constants: only use `UPPER_SNAKE_CASE` if truly constant.
-- Neovim commands: `Opencode*` prefix is consistent.
+- Neovim commands: `InlineAi*` prefix is consistent.
 - Keymaps: keep descriptive `desc` strings.
 
 ## Error Handling and UX
@@ -83,7 +83,7 @@ Lua error handling patterns to keep:
 ## When Making Changes
 
 - Update docs if you change commands, config, or behavior.
-- Keep `plugin/` thin; put logic in `lua/opencode/`.
+- Keep `plugin/` thin; put logic in `lua/inline_ai/`.
 - Reuse existing helpers; do not duplicate `pcall` patterns.
 - Respect existing UX (keymaps, prompts, notifications).
 - Always run tests and confirm they pass before finishing work.

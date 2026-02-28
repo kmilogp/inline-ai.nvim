@@ -1,5 +1,5 @@
-local opencode = require('opencode')
-local PROMPT_USAGE = 'Usage: OpencodePrompt [profile] <prompt>'
+local inline_ai = require('inline_ai')
+local PROMPT_USAGE = 'Usage: InlineAiPrompt [profile] <prompt>'
 
 local function parse_prompt_args(raw)
   local args = vim.trim(raw or '')
@@ -8,7 +8,7 @@ local function parse_prompt_args(raw)
   end
 
   local first, rest = args:match('^(%S+)%s*(.*)$')
-  if first and opencode.config.profiles[first] then
+  if first and inline_ai.config.profiles[first] then
     local prompt = vim.trim(rest or '')
     if prompt == '' then
       return nil, nil, PROMPT_USAGE
@@ -40,18 +40,18 @@ local function get_selection_from_range(opts)
 end
 
 local function prefill_prompt(profile)
-  local profile_name = profile or (opencode.config.default_profile or 'fast')
-  vim.api.nvim_input(':OpencodePrompt ' .. profile_name .. ' ')
+  local profile_name = profile or (inline_ai.config.default_profile or 'fast')
+  vim.api.nvim_input(':InlineAiPrompt ' .. profile_name .. ' ')
 end
 
-vim.api.nvim_create_user_command('OpencodePrompt', function(opts)
+vim.api.nvim_create_user_command('InlineAiPrompt', function(opts)
   local profile, prompt, err = parse_prompt_args(opts.args)
   if err then
-    vim.notify(err, vim.log.levels.WARN, { title = 'Opencode' })
+    vim.notify(err, vim.log.levels.WARN, { title = 'Inline AI' })
     return
   end
 
-  opencode.run_prompt(prompt, profile, {
+  inline_ai.run_prompt(prompt, profile, {
     selection = get_selection_from_range(opts),
   })
 end, {
@@ -61,7 +61,7 @@ end, {
   complete = function(_, cmdline)
     local tokens = vim.split(cmdline, '%s+', { trimempty = true })
     if #tokens <= 2 then
-      return vim.tbl_keys(opencode.config.profiles)
+      return vim.tbl_keys(inline_ai.config.profiles)
     end
     return {}
   end,

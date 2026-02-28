@@ -215,14 +215,14 @@ tests['defaults.build uses xdg path'] = function()
     return '/tmp/xdg'
   end
   with_vim(vim_mock, function()
-    local defaults = reload('opencode.defaults')
+    local defaults = reload('inline_ai.defaults')
     local config = defaults.build({ fast = function() end, deep = function() end }, {
       default_providers = function()
         return { ollama = true }
       end,
     })
     assert_eq(config.default_profile, 'fast')
-    assert_eq(config.debug_log_file, '/tmp/xdg/opencode/opencode.nvim.log')
+    assert_eq(config.debug_log_file, '/tmp/xdg/inline-ai/inline-ai.nvim.log')
     assert_true(type(config.profiles.fast.template) == 'function')
   end)
 end
@@ -247,7 +247,7 @@ tests['logging start/end writes edit event'] = function()
     table.insert(writes, { lines = lines, path = path, mode = mode })
   end
   with_vim(vim_mock, function()
-    local logging = reload('opencode.logging')
+    local logging = reload('inline_ai.logging')
     local state = { config = { debug_log_file = '/tmp/log' } }
     logging.start_edit(state, 'fast', 'ollama', 'qwen', 'abc', { file = 'a.lua', line = 1, col = 2 })
     logging.end_edit(state, 'ok', { apply_mode = 'auto' })
@@ -276,7 +276,7 @@ tests['logging schedules in fast event'] = function()
     writes = writes + 1
   end
   with_vim(vim_mock, function()
-    local logging = reload('opencode.logging')
+    local logging = reload('inline_ai.logging')
     local state = { config = { debug_log_file = '/tmp/log' } }
     logging.log_ollama_response(state, 'abc', {})
     assert_eq(scheduled, 1)
@@ -306,7 +306,7 @@ tests['context.get returns cursor and file context'] = function()
     return 'file.lua'
   end
   with_vim(vim_mock, function()
-    local context = reload('opencode.context')
+    local context = reload('inline_ai.context')
     local called_include = nil
     local result = context.get({
       build_file_context = function(_, _, include)
@@ -344,7 +344,7 @@ end
 tests['profiles.resolve and build_prompt'] = function()
   local vim_mock = make_vim_mock()
   with_vim(vim_mock, function()
-    local profiles = reload('opencode.profiles')
+    local profiles = reload('inline_ai.profiles')
     local config = {
       default_profile = 'fast',
       profiles = {
@@ -379,7 +379,7 @@ end
 tests['templates.fast includes selected text context'] = function()
   local vim_mock = make_vim_mock()
   with_vim(vim_mock, function()
-    local templates = reload('opencode.templates')
+    local templates = reload('inline_ai.templates')
     local prompt = templates.fast({
       input = 'Refactor selection',
       auto_apply = false,
@@ -405,7 +405,7 @@ end
 tests['edit_blocks.parse replace and insert'] = function()
   local vim_mock = make_vim_mock()
   with_vim(vim_mock, function()
-    local edit_blocks = reload('opencode.edit_blocks')
+    local edit_blocks = reload('inline_ai.edit_blocks')
     local blocks, err = edit_blocks.parse(table.concat({
       'BEGIN_REPLACE',
       'OLD:',
@@ -429,10 +429,68 @@ tests['edit_blocks.parse replace and insert'] = function()
   end)
 end
 
+tests['edit_blocks.parse tolerates trailing spaces in control lines'] = function()
+  local vim_mock = make_vim_mock()
+  with_vim(vim_mock, function()
+    local edit_blocks = reload('inline_ai.edit_blocks')
+    local blocks, err = edit_blocks.parse(table.concat({
+      'BEGIN_REPLACE  ',
+      'OLD:  ',
+      "pcall(require('telescope').load_extension, 'live_grep_args')  ",
+      'NEW:  ',
+      "-- pcall(require('telescope').load_extension, 'live_grep_args')  ",
+      'END_REPLACE  ',
+    }, '\n'))
+    assert_eq(err, nil)
+    assert_eq(#blocks, 1)
+    assert_eq(blocks[1].kind, 'replace')
+    assert_eq(blocks[1].anchor_lines, { "pcall(require('telescope').load_extension, 'live_grep_args')  " })
+  end)
+end
+
+tests['edit_blocks.apply ai response on telescope snippet'] = function()
+  local vim_mock = make_vim_mock()
+  local get_lines = attach_buffer_lines(vim_mock, {
+    "pcall(require('telescope').load_extension, 'live_grep_args')",
+    '',
+    "local extensions = require('telescope').extensions",
+    '',
+    "vim.keymap.set('n', '<leader>sg', extensions.live_grep_args.live_grep_args, { desc = '[S]earch by [G]rep' })",
+  })
+  vim_mock.bo[1] = { modifiable = true }
+
+  with_vim(vim_mock, function()
+    local edit_blocks = reload('inline_ai.edit_blocks')
+    local response_text = table.concat({
+      'BEGIN_REPLACE  ',
+      'OLD:  ',
+      "pcall(require('telescope').load_extension, 'live_grep_args')  ",
+      'NEW:  ',
+      "-- pcall(require('telescope').load_extension, 'live_grep_args')  ",
+      'END_REPLACE',
+    }, '\n')
+
+    local blocks, err = edit_blocks.parse(response_text)
+    assert_eq(err, nil)
+    local ok, msg, applied = edit_blocks.apply({ bufnr = 1 }, blocks)
+    assert_true(ok)
+    assert_eq(applied, 1)
+    assert_match(msg, 'Applied 1')
+
+    assert_eq(get_lines(), {
+      "-- pcall(require('telescope').load_extension, 'live_grep_args')  ",
+      '',
+      "local extensions = require('telescope').extensions",
+      '',
+      "vim.keymap.set('n', '<leader>sg', extensions.live_grep_args.live_grep_args, { desc = '[S]earch by [G]rep' })",
+    })
+  end)
+end
+
 tests['edit_blocks.parse strips numbered lines in old and new'] = function()
   local vim_mock = make_vim_mock()
   with_vim(vim_mock, function()
-    local edit_blocks = reload('opencode.edit_blocks')
+    local edit_blocks = reload('inline_ai.edit_blocks')
     local blocks, err = edit_blocks.parse(table.concat({
       'BEGIN_REPLACE',
       'OLD:',
@@ -451,7 +509,7 @@ end
 tests['edit_blocks.parse trims trailing blank anchor lines'] = function()
   local vim_mock = make_vim_mock()
   with_vim(vim_mock, function()
-    local edit_blocks = reload('opencode.edit_blocks')
+    local edit_blocks = reload('inline_ai.edit_blocks')
     local blocks, err = edit_blocks.parse(table.concat({
       'BEGIN_REPLACE',
       'OLD:',
@@ -471,7 +529,7 @@ end
 tests['edit_blocks.parse allows blank insert anchor lines'] = function()
   local vim_mock = make_vim_mock()
   with_vim(vim_mock, function()
-    local edit_blocks = reload('opencode.edit_blocks')
+    local edit_blocks = reload('inline_ai.edit_blocks')
     local blocks, err = edit_blocks.parse(table.concat({
       'BEGIN_INSERT',
       'BEFORE:',
@@ -495,7 +553,7 @@ tests['edit_blocks.apply replace insert and skip'] = function()
   vim_mock.bo[1] = { modifiable = true }
 
   with_vim(vim_mock, function()
-    local edit_blocks = reload('opencode.edit_blocks')
+    local edit_blocks = reload('inline_ai.edit_blocks')
     local ok, msg, applied = edit_blocks.apply({ bufnr = 1 }, {
       { kind = 'replace', anchor_lines = { 'A' }, new_lines = { 'X' } },
       { kind = 'replace', anchor_lines = { 'A' }, new_lines = { 'X' } },
@@ -513,7 +571,7 @@ tests['edit_blocks.apply ambiguous anchor fails'] = function()
   attach_buffer_lines(vim_mock, { 'A', 'A' })
   vim_mock.bo[1] = { modifiable = true }
   with_vim(vim_mock, function()
-    local edit_blocks = reload('opencode.edit_blocks')
+    local edit_blocks = reload('inline_ai.edit_blocks')
     local ok, msg = edit_blocks.apply({ bufnr = 1 }, {
       { kind = 'replace', anchor_lines = { 'A' }, new_lines = { 'Z' } },
     })
@@ -528,7 +586,7 @@ tests['edit_blocks.apply inserts before unique blank line'] = function()
   vim_mock.bo[1] = { modifiable = true }
 
   with_vim(vim_mock, function()
-    local edit_blocks = reload('opencode.edit_blocks')
+    local edit_blocks = reload('inline_ai.edit_blocks')
     local ok, msg = edit_blocks.apply({ bufnr = 1 }, {
       {
         kind = 'insert',
@@ -558,7 +616,7 @@ tests['edit_blocks.apply matches numbered anchors'] = function()
   vim_mock.bo[1] = { modifiable = true }
 
   with_vim(vim_mock, function()
-    local edit_blocks = reload('opencode.edit_blocks')
+    local edit_blocks = reload('inline_ai.edit_blocks')
     local ok, msg = edit_blocks.apply({ bufnr = 1 }, {
       {
         kind = 'replace',
@@ -588,7 +646,7 @@ tests['edit_blocks.apply reported numbered replace blocks'] = function()
   vim_mock.bo[1] = { modifiable = true }
 
   with_vim(vim_mock, function()
-    local edit_blocks = reload('opencode.edit_blocks')
+    local edit_blocks = reload('inline_ai.edit_blocks')
     local blocks, err = edit_blocks.parse(table.concat({
       'BEGIN_REPLACE',
       'OLD:',
@@ -641,7 +699,7 @@ tests['edit_blocks.apply does not skip when old-only lines still exist'] = funct
   vim_mock.bo[1] = { modifiable = true }
 
   with_vim(vim_mock, function()
-    local edit_blocks = reload('opencode.edit_blocks')
+    local edit_blocks = reload('inline_ai.edit_blocks')
     local ok, msg = edit_blocks.apply({ bufnr = 1 }, {
       {
         kind = 'replace',
@@ -666,7 +724,7 @@ tests['edit_blocks.apply handles old block with trailing blank at eof'] = functi
   vim_mock.bo[1] = { modifiable = true }
 
   with_vim(vim_mock, function()
-    local edit_blocks = reload('opencode.edit_blocks')
+    local edit_blocks = reload('inline_ai.edit_blocks')
     local blocks, err = edit_blocks.parse(table.concat({
       'BEGIN_REPLACE',
       'OLD:',
@@ -698,7 +756,7 @@ tests['sender handles resolve profile error'] = function()
     table.insert(notified, { msg = msg, level = level })
   end
   with_vim(vim_mock, function()
-    local sender = reload('opencode.sender')
+    local sender = reload('inline_ai.sender')
     local end_calls = {}
     sender.send({ config = {} }, {
       providers = {},
@@ -730,7 +788,7 @@ tests['sender ollama auto-apply success'] = function()
   end
 
   with_vim(vim_mock, function()
-    local sender = reload('opencode.sender')
+    local sender = reload('inline_ai.sender')
     local end_calls = {}
     local ollama_logged = 0
     sender.send({
